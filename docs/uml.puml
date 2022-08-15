@@ -1,0 +1,33 @@
+@startuml
+participant client
+participant server
+participant redis
+
+group "update my point"
+client -> server: http request: 更新得分
+activate server
+server -> redis: zadd key score userid \nscore 为 fmt.Sprintf("%v%v", 得分，时间) \n时间为 2*10^9 - ts，越早达成同一分数的用户 score 越大 \n这样直接比较 redis score 可以获得分数排名\n分数前几位相同时，后几位可以区分先后
+activate redis
+redis->server: ok
+deactivate redis
+server -> client: ok
+deactivate server
+end
+
+group "get my rank"
+client -> server: http request: 获取排名
+activate server
+server -> redis: zrevrank key userid
+activate redis
+redis -> server: 排名 rank
+deactivate redis
+server -> redis: 查询前后各10位 zrenrange key rank-10 rank+10 WITHSCORES
+activate redis
+redis -> server: []rank
+deactivate redis
+server -> client: 组装数据返回结果
+deactivate server
+end
+
+
+@enduml
